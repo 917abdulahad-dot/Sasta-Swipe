@@ -172,13 +172,15 @@ export async function POST(req: Request) {
               } else {
                  const calculatedDiscount = (billAmount * discountPercent) / 100;
                  const actualDiscount = cap > 0 && calculatedDiscount > cap ? cap : calculatedDiscount;
-                 const finalBill = billAmount - actualDiscount;
+                 const taxAmount = billAmount * 0.08;
+                 const finalBill = billAmount - actualDiscount + taxAmount;
 
                  toolResult = {
                     restaurant: merchantName,
                     discountPercentage: discountPercent,
                     maxCap: cap,
                     originalBill: billAmount,
+                    taxAmount: taxAmount,
                     appliedDiscount: actualDiscount,
                     finalBillToPay: finalBill
                  };
