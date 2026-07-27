@@ -1,15 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Tell Next.js to NOT bundle playwright — it needs to run as native Node.js
+  // playwright is still used in dev — keep it external so it's not bundled
   serverExternalPackages: ["playwright", "playwright-core", "@sparticuz/chromium"],
-
-  outputFileTracingIncludes: {
-    "/**/*": [
-      "./node_modules/playwright-core/browsers.json", 
-      "./node_modules/playwright-core/lib/**/*",
-      "./node_modules/@sparticuz/chromium/bin/**/*"
-    ],
-  },
 
   images: {
     unoptimized: true,
