@@ -9,7 +9,7 @@ Finding dining discounts across multiple Pakistani bank websites is painful. Use
 ---
 
 ## 🌐 Live Demo
-**[🚀 Click Here to View the Live Deployed App](https://sasta-swipe-vbiz.vercel.app/)**
+**https://sasta-swipe-vbiz.vercel.app/**
 
 ---
 
