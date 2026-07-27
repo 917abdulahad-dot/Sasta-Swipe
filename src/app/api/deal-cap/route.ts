@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     });
 
     const associations: any[] = await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Associations timeout after 15s")), 15000);
+      const timer = setTimeout(() => reject(new Error("Associations timeout after 8s")), 8000);
 
       page1.on("response", async (res) => {
         if (!res.url().includes("secure-sdk.peekaboo.guru")) return;
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
       page1.goto(`${baseUrl}${city.toLowerCase()}/places/_all/all`, {
         waitUntil: "domcontentloaded",
-        timeout: 30000,
+        timeout: 15000,
       }).catch(reject);
     });
 
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    await page2.goto(filterUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page2.goto(filterUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
 
     let clicked = false;
     try {
@@ -151,12 +151,12 @@ export async function POST(req: NextRequest) {
 
       let merchantEl = null;
       try {
-        await elExact.waitFor({ state: "visible", timeout: 15000 });
+        await elExact.waitFor({ state: "visible", timeout: 4000 });
         merchantEl = elExact;
         console.log(`[Deal Cap] Found merchant (exact): ${merchant}`);
       } catch {
         try {
-          await elPartial.waitFor({ state: "visible", timeout: 5000 });
+          await elPartial.waitFor({ state: "visible", timeout: 2000 });
           merchantEl = elPartial;
           console.log(`[Deal Cap] Found merchant (partial): ${merchant}`);
         } catch {
