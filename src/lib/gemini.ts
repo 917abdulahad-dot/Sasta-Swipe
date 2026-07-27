@@ -20,7 +20,7 @@ The content may be in one of these formats:
 
 Your task:
 1. Extract ALL food and dining related offers. This includes anything related to: restaurants, cafes, dining, food, eateries, F&B, food & beverage. Use your best judgment.
-2. Only include offers available in "${city}" or nationwide offers.
+2. The content provided is ALREADY confirmed to be available in "${city}". Include all relevant deals even if the city name is not explicitly written in the JSON.
 3. Prefer offers for "${cardType}" cards, but also include "All Cards" offers.
 4. **CRITICAL**: If the JSON has a "maxDiscount" field but an empty or missing "discounts" array, interpret the discount as "Up to {maxDiscount}% off".
 5. Return ONLY a valid JSON array. No markdown, no explanation.
