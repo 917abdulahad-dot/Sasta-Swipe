@@ -1,5 +1,17 @@
 import { Bank } from "@/types";
 
+// Peekaboo SDK ownerkeys per bank — used for direct API calls in deal-cap
+export const BANK_OWNERKEYS: Record<string, string> = {
+  hbl:        "0a1755c7e5691a8f3380180979414d31",
+  mcb:        "20b6989c507e2aa21567a44fb3c9c183",
+  ubl:        "7db159dc932ec461c1a6b9c1778bb2b0",
+  faysal:     "109fcf39f8ada91483dcced4632b0d42",
+  allied:     "de579fa6950f741c1cb383414a590095",
+  mcbislamic: "19cc9397ef2b9e1a26c35a121ad554d0",
+  meezan:     "af085488ba0578c025f03fc7fae7b25d",
+  alfalah:    "2fbabf2c60b4cc81e9ac6470a5a12eb0",
+};
+
 export const BANKS: Bank[] = [
   {
     id: "hbl",

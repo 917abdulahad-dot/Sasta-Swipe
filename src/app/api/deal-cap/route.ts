@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBankById, BANK_OWNERKEYS } from "@/lib/banks";
 
-import { getBankById } from "@/lib/banks";
-
-// Must run as Node.js — Playwright cannot run in Edge runtime
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
+
+// ── Peekaboo SDK endpoints (obfuscated but fixed across all banks) ──────────
+const ASSOCIATIONS_ENDPOINT =
+  "https://secure-sdk.peekaboo.guru/saovrumensjlqdsaiocassasdasociasdasdtns";
+const DEALS_ENDPOINT =
+  "https://secure-sdk.peekaboo.guru/ksbolruuahrndcjchshjhejgjhasdo787kjieo767kjsgeskoyfgwwhkl6";
 
 function toCardSlug(s: string): string {
   return s
@@ -15,8 +19,35 @@ function toCardSlug(s: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
+async function postPeekaboo(
+  url: string,
+  body: Record<string, unknown>,
+  referer: string,
+  ownerKey: string
+): Promise<unknown> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      medium: "IFRAME",
+      ownerkey: ownerKey,
+      version: "1.0.0",
+      Origin: referer.replace(/\/$/, ""),
+      Referer: referer,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Peekaboo API ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 export async function POST(req: NextRequest) {
-  let browser;
   try {
     const { bankId, entityId, merchant, cardType, city } = await req.json();
 
@@ -29,195 +60,135 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Bank '${bankId}' not found` }, { status: 404 });
     }
 
-    const baseUrl = bank.dealsWidgetUrl ?? "https://hbl-web.peekaboo.guru/";
-    console.log(`[Deal Cap] bank=${bankId} entity=${entityId} merchant=${merchant} card=${cardType} city=${city}`);
+    const ownerKey = BANK_OWNERKEYS[bankId];
+    if (!ownerKey) {
+      return NextResponse.json({ maxCap: null, description: "Bank not supported for cap lookup" });
+    }
 
+    const referer = bank.dealsWidgetUrl ?? "https://hbl-web.peekaboo.guru/";
+    // Peekaboo expects title-cased city name
+    const cityName = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
     const cardSlug = toCardSlug(cardType);
 
-    if (process.env.NODE_ENV === "production") {
-      const sparticuz = (await import("@sparticuz/chromium")).default;
-      const { chromium } = await import("playwright-core");
-      browser = await chromium.launch({
-        args: sparticuz.args,
-        executablePath: await sparticuz.executablePath(),
-        headless: true,
-      });
-    } else {
-      const { chromium } = await import("playwright");
-      browser = await chromium.launch({ headless: true });
-    }
+    console.log(`[Deal Cap] bank=${bankId} entity=${entityId} card=${cardType} city=${cityName}`);
 
-    // ── STEP 1: Get associations list ───────────────────────────────────────
-    const page1 = await browser.newPage({
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-    });
+    // ── Step 1: Fetch associations to get associationTypeId ─────────────────
+    // Not needed for "All Cards" — just fetch deals without a type filter
+    let associationTypeId: string | null = null;
 
-    const associations: any[] = await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Associations timeout after 8s")), 8000);
+    if (cardType !== "All Cards") {
+      const assocData = (await postPeekaboo(
+        ASSOCIATIONS_ENDPOINT,
+        {
+          fksyd: cityName,
+          n4ja3s: "Pakistan",
+          js6nwf: "0",
+          pan3ba: "0",
+          mstoaw: "en",
+          mnakls: "50",
+          opmsta: "0",
+        },
+        referer,
+        ownerKey
+      )) as any[];
 
-      page1.on("response", async (res) => {
-        if (!res.url().includes("secure-sdk.peekaboo.guru")) return;
-        try {
-          const body = await res.text();
-          if (body.trim().startsWith("[") && body.includes("associationId")) {
-            clearTimeout(timer);
-            resolve(JSON.parse(body));
-          }
-        } catch {}
-      });
+      for (const assoc of assocData) {
+        const name = assoc.typeName ?? assoc.associationName ?? assoc.name ?? "";
+        const assocSlug = toCardSlug(name);
+        if (
+          assocSlug === cardSlug ||
+          assocSlug.includes(cardSlug) ||
+          cardSlug.includes(assocSlug)
+        ) {
+          associationTypeId = String(assoc.typeId ?? assoc.associationTypeId ?? "");
+          console.log(`[Deal Cap] Association matched: "${name}" → typeId=${associationTypeId}`);
+          break;
+        }
+      }
 
-      page1.goto(`${baseUrl}${city.toLowerCase()}/places/_all/all`, {
-        waitUntil: "domcontentloaded",
-        timeout: 15000,
-      }).catch(reject);
-    });
-
-    await page1.close();
-    console.log(`[Deal Cap] Got ${associations.length} associations`);
-
-    // ── STEP 2: Find matching association ───────────────────────────────────
-    let ids: { ai: number; type: number } | null = null;
-    for (const assoc of associations) {
-      const name = assoc.typeName ?? assoc.associationName ?? assoc.name ?? "";
-      const assocSlug = toCardSlug(name);
-      if (assocSlug === cardSlug || assocSlug.includes(cardSlug) || cardSlug.includes(assocSlug)) {
-        ids = {
-          ai: assoc.associationId ?? assoc.id,
-          type: assoc.typeId ?? assoc.associationTypeId,
-        };
-        console.log(`[Deal Cap] Matched: "${name}" → ai=${ids.ai} type=${ids.type}`);
-        break;
+      if (!associationTypeId) {
+        console.log(`[Deal Cap] No association found for card slug: ${cardSlug}`);
+        return NextResponse.json({
+          maxCap: null,
+          description: "Could not map card type to association",
+        });
       }
     }
 
-    if (!ids) {
-      await browser.close();
-      console.log(`[Deal Cap] No match for slug: ${cardSlug}`);
-      return NextResponse.json({ maxCap: null, description: "Could not map card type" });
+    // ── Step 2: Fetch deal details for the specific merchant/entity ─────────
+    const dealsBody: Record<string, unknown> = {
+      fksyd: cityName,
+      n4ja3s: "Pakistan",
+      js6nwf: "0",
+      pan3ba: "0",
+      mstoaw: "en",
+      cotuia: Number(entityId),
+      nai3asnu: "All",
+      ia3uas: "All",
+      matsw: merchant ?? "",
+      yudwq: "_all",
+      njsue: "sdk",
+      hgoeni: Number(entityId),
+      mnakls: "100",
+      opmsta: "0",
+      mghes: "true",
+      klaosw: false,
+      makthya: "discount",
+    };
+
+    if (associationTypeId) {
+      dealsBody.kaiwnua = associationTypeId;
     }
 
-    // ── STEP 3: Open a fresh page, navigate to card-filtered deals, click merchant ──
-    const page2 = await browser.newPage({
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-    });
+    const deals = (await postPeekaboo(
+      DEALS_ENDPOINT,
+      dealsBody,
+      referer,
+      ownerKey
+    )) as any[];
 
-    let filterUrl = `${baseUrl}${city.toLowerCase()}/places/_all/all?ai=${ids.ai}&associationTypeId=${ids.type}&card=${cardSlug}`;
-    if (merchant) filterUrl += `&query=${encodeURIComponent(merchant)}&sortType=relevance`;
-    console.log(`[Deal Cap] Filter URL: ${filterUrl}`);
+    console.log(`[Deal Cap] Fetched ${Array.isArray(deals) ? deals.length : 0} deals`);
 
+    if (!Array.isArray(deals) || deals.length === 0) {
+      return NextResponse.json({ maxCap: null, description: "No deals found for this merchant" });
+    }
+
+    // Find the deal that exactly matches our entityId, or fall back to first
+    const deal =
+      deals.find((d: any) => String(d.targetEntityId) === String(entityId)) ?? deals[0];
+
+    console.log(`[Deal Cap] Using deal: "${deal.title}" for "${deal.targetEntityName}"`);
+
+    // ── Step 3: Extract cap from the deal description ───────────────────────
     let maxCap: number | null = null;
-    let descriptionText = "";
-    let discountTitle = "";
-    let dealResolve: () => void = () => {};
+    const description: string = deal.description ?? "";
 
-    const dealPromise = new Promise<void>((resolve) => {
-      dealResolve = resolve;
-
-      page2.on("response", async (res) => {
-        // Try to intercept the specific API if it fires (varies by bank/token, but peekaboo has standard responses)
-        try {
-          const body = await res.text();
-          if (body.includes("targetEntityId") && body.includes(String(entityId))) {
-             const items: any[] = JSON.parse(body);
-             if (Array.isArray(items)) {
-                const deal = items.find((d) => String(d.targetEntityId) === String(entityId));
-                if (deal) {
-                  console.log(`[Deal Cap API] Found deal: ${deal.title}`);
-                  discountTitle = deal.title || "";
-                  if (deal.description) {
-                    descriptionText = deal.description;
-                    const m = deal.description.match(/(?:PKR|Rs\.?)\s*([\d,]+)/i);
-                    if (m) {
-                      maxCap = parseInt(m[1].replace(/,/g, ""), 10);
-                      console.log(`[Deal Cap API] maxCap = ${maxCap}`);
-                    }
-                  }
-                  resolve();
-                }
-             }
-          }
-        } catch (e) {
-          // ignore parsing errors for non-deal responses
+    if (description) {
+      // Primary pattern: "Discount Cap PKR 3,000/-" or "Discount Capping Rs. 5,000"
+      const primaryMatch = description.match(
+        /(?:discount\s*cap(?:ping)?|maximum\s*(?:discount|saving))[\s\S]{0,40}?(?:pkr|rs\.?)\s*([\d,]+)/i
+      );
+      if (primaryMatch) {
+        maxCap = parseInt(primaryMatch[1].replace(/,/g, ""), 10);
+        console.log(`[Deal Cap] maxCap (primary) = ${maxCap}`);
+      } else {
+        // Fallback: any Rs./PKR amount in description (least specific)
+        const fallbackMatch = description.match(/(?:pkr|rs\.?)\s*([\d,]+)/i);
+        if (fallbackMatch) {
+          maxCap = parseInt(fallbackMatch[1].replace(/,/g, ""), 10);
+          console.log(`[Deal Cap] maxCap (fallback) = ${maxCap}`);
         }
-      });
+      }
+    }
+
+    return NextResponse.json({
+      maxCap,
+      description: deal.description ?? null,
+      discount: deal.title ?? null,
+      percentageValue: deal.percentageValue ?? null,
     });
-
-    await page2.goto(filterUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
-
-    let clicked = false;
-    try {
-      const elExact = page2.locator(`text="${merchant}"`).first();
-      const elPartial = page2.locator(`text=${merchant}`).first();
-
-      let merchantEl = null;
-      try {
-        await elExact.waitFor({ state: "visible", timeout: 4000 });
-        merchantEl = elExact;
-        console.log(`[Deal Cap] Found merchant (exact): ${merchant}`);
-      } catch {
-        try {
-          await elPartial.waitFor({ state: "visible", timeout: 2000 });
-          merchantEl = elPartial;
-          console.log(`[Deal Cap] Found merchant (partial): ${merchant}`);
-        } catch {
-          console.log(`[Deal Cap] Merchant "${merchant}" not found after 15s.`);
-        }
-      }
-
-      if (merchantEl) {
-        // Scroll into view to ensure click works
-        await merchantEl.scrollIntoViewIfNeeded();
-        await merchantEl.click();
-        clicked = true;
-      }
-    } catch (err) {
-      console.error("[Deal Cap] Click failed:", err);
-    }
-
-    if (clicked) {
-      console.log("[Deal Cap] Clicked merchant, awaiting response or DOM update...");
-      // Give it up to 5 seconds to either hit the API or render the DOM
-      const timer = setTimeout(() => {
-        dealResolve();
-      }, 5000);
-      await dealPromise;
-      clearTimeout(timer);
-
-      // Fallback: If API interception missed it, scrape the DOM directly for the cap
-      if (!maxCap) {
-        console.log("[Deal Cap] API interception didn't find cap. Scraping DOM...");
-        // Wait briefly for animations/renders
-        await page2.waitForTimeout(1500);
-        
-        const allText = await page2.evaluate(() => document.body.innerText);
-        
-        // Match common patterns across HBL, MCB, UBL:
-        // "Discount cap PKR 5,000/-"
-        // "Discount Capping PKR 10,000/-"
-        // "Maximum Discount Rs. 2,000"
-        const capRegex = /(?:discount cap(?:ping)?|maximum.*?discount).*?(?:pkr|rs\.?)\s*([\d,]+)/i;
-        const domMatch = allText.match(capRegex);
-        
-        if (domMatch) {
-           maxCap = parseInt(domMatch[1].replace(/,/g, ""), 10);
-           console.log(`[Deal Cap DOM] Found maxCap = ${maxCap}`);
-        } else {
-           console.log(`[Deal Cap DOM] No cap found in text.`);
-        }
-      }
-    } else {
-      console.log("[Deal Cap] Merchant click failed — returning null cap");
-    }
-
-    await page2.close();
-    await browser.close();
-
-    console.log(`[Deal Cap] Result: maxCap=${maxCap} title=${discountTitle}`);
-    return NextResponse.json({ maxCap, description: descriptionText, discount: discountTitle });
-
   } catch (err) {
-    if (browser) await browser.close().catch(() => {});
     console.error("[Deal Cap] Fatal error:", err);
-    return NextResponse.json({ error: "Failed to fetch cap" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch cap", details: String(err) }, { status: 500 });
   }
 }
