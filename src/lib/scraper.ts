@@ -12,10 +12,8 @@ export async function scrapeBankOffers(bankId: string, city: string, cardType: s
     const sparticuz = (await import("@sparticuz/chromium")).default;
     const { chromium } = await import("playwright-core");
     
-    sparticuz.setGraphicsMode = false;
-
     browser = await chromium.launch({
-      args: [...sparticuz.args, "--disable-gpu", "--disable-dev-shm-usage", "--disk-cache-size=0"],
+      args: sparticuz.args,
       executablePath: await sparticuz.executablePath(),
       headless: true,
     });
@@ -79,7 +77,7 @@ export async function scrapeBankOffers(bankId: string, city: string, cardType: s
 
     // Enable capture ONLY for the deals we care about
     captureEnabled = isAllCards;
-    await page.goto(cityUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+    await page.goto(cityUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForTimeout(6000);
 
     // ── Phase 2: Apply card filter if needed ──────────────────────────────
@@ -95,7 +93,7 @@ export async function scrapeBankOffers(bankId: string, city: string, cardType: s
         const cardUrl = await buildCardFilterUrl(baseUrl, citySlug, cardType, associations, searchQuery);
         if (cardUrl) {
            console.log(`[Scraper] Navigating to card-filtered URL: ${cardUrl}`);
-           await page.goto(cardUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+           await page.goto(cardUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
            await page.waitForTimeout(5000);
            appliedDirectUrl = true;
         }
