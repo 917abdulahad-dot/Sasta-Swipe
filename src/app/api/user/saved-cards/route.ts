@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
     const payload = await verifyToken(token);
     if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const cards = db.prepare('SELECT * FROM saved_cards WHERE user_id = ? ORDER BY created_at DESC').all(payload.userId);
+    const result = await db.query('SELECT * FROM saved_cards WHERE user_id = $1 ORDER BY created_at DESC', [payload.userId]);
+    const cards = result.rows;
     
     return NextResponse.json({ cards }, { status: 200 });
   } catch (error) {
@@ -35,12 +36,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "bankId and cardType are required" }, { status: 400 });
     }
 
-    const result = db.prepare(`
+    const result = await db.query(`
       INSERT INTO saved_cards (user_id, bank_id, card_type, custom_name)
-      VALUES (?, ?, ?, ?)
-    `).run(payload.userId, bankId, cardType, customName || null);
+      VALUES ($1, $2, $3, $4) RETURNING id
+    `, [payload.userId, bankId, cardType, customName || null]);
 
-    const newCardId = result.lastInsertRowid;
+    const newCardId = result.rows[0].id;
 
     return NextResponse.json({ success: true, id: newCardId }, { status: 201 });
   } catch (error) {
@@ -61,7 +62,7 @@ export async function DELETE(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
 
-    db.prepare('DELETE FROM saved_cards WHERE id = ? AND user_id = ?').run(id, payload.userId);
+    await db.query('DELETE FROM saved_cards WHERE id = $1 AND user_id = $2', [id, payload.userId]);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

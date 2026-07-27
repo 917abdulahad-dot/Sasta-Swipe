@@ -53,15 +53,16 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Check if user exists, if not, create them
-    let user = db.prepare('SELECT id, email FROM users WHERE email = ?').get(email) as any;
+    const existingUserResult = await db.query('SELECT id, email FROM users WHERE email = $1', [email]);
+    let user = existingUserResult.rows[0];
 
     if (!user) {
       // Create new user. Since we require password_hash, generate a random one.
       // This ensures they can't login via normal password route unless they reset it later.
       const randomPassword = crypto.randomBytes(32).toString('hex');
       
-      const result = db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(email, randomPassword);
-      user = { id: result.lastInsertRowid, email };
+      const insertResult = await db.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id', [email, randomPassword]);
+      user = { id: insertResult.rows[0].id, email };
     }
 
     // 4. Generate our app's JWT token

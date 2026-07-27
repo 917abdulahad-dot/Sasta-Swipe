@@ -128,7 +128,7 @@ export async function POST(req: Request) {
               const capData = await capRes.json();
               const cap = capData.maxCap || 0;
 
-              const discountStr = deal.discountDetails || deal.discount || deal.maxDiscount || "";
+              const discountStr = deal.discount || "";
               const percentMatch = discountStr.match(/(\d+)%/);
               let discountPercent = percentMatch ? parseInt(percentMatch[1], 10) : 0;
 

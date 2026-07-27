@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch user preferences
-    const prefs = db.prepare('SELECT bank_id, card_type FROM user_preferences WHERE user_id = ?').get(payload.userId) as any;
+    const prefsResult = await db.query('SELECT bank_id, card_type FROM user_preferences WHERE user_id = $1', [payload.userId]);
+    const prefs = prefsResult.rows[0];
 
     return NextResponse.json({ 
       user: { id: payload.userId, email: payload.email },

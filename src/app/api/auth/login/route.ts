@@ -11,7 +11,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const user = db.prepare('SELECT id, email, password_hash FROM users WHERE email = ?').get(email) as any;
+    const result = await db.query('SELECT id, email, password_hash FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
     
     if (!user) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });

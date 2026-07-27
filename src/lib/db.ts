@@ -1,46 +1,43 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { Pool } from 'pg';
 
-// Store the database file on the persistent disk if on Render, otherwise local
-const dbPath = process.env.RENDER 
-  ? '/data/database.sqlite' 
-  : path.join(process.cwd(), 'database.sqlite');
-  
-const db = new Database(dbPath, { verbose: console.log });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+async function initDb() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
-// Initialize the database schema
-function initDb() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        user_id INTEGER PRIMARY KEY,
+        bank_id TEXT,
+        card_type TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
 
-    CREATE TABLE IF NOT EXISTS user_preferences (
-      user_id INTEGER PRIMARY KEY,
-      bank_id TEXT,
-      card_type TEXT,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS saved_cards (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      bank_id TEXT NOT NULL,
-      card_type TEXT NOT NULL,
-      custom_name TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-  `);
+      CREATE TABLE IF NOT EXISTS saved_cards (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        bank_id TEXT NOT NULL,
+        card_type TEXT NOT NULL,
+        custom_name TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+    console.log('[DB] PostgreSQL initialized successfully.');
+  } catch (error) {
+    console.error('[DB] Error initializing PostgreSQL:', error);
+  }
 }
 
-// Initialize on load
+// Auto-initialize (in a production environment, you might want to use a proper migration script)
 initDb();
 
-export default db;
+export default pool;

@@ -21,13 +21,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Upsert preferences
-    db.prepare(`
+    // Upsert preferences
+    await db.query(`
       INSERT INTO user_preferences (user_id, bank_id, card_type)
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3)
       ON CONFLICT(user_id) DO UPDATE SET
-        bank_id = excluded.bank_id,
-        card_type = excluded.card_type
-    `).run(payload.userId, bankId, cardType);
+        bank_id = EXCLUDED.bank_id,
+        card_type = EXCLUDED.card_type
+    `, [payload.userId, bankId, cardType]);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-    if (existingUser) {
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
       return NextResponse.json({ error: "Email already exists" }, { status: 400 });
     }
 
@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Insert user
-    const result = db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(email, hashedPassword);
-    const userId = result.lastInsertRowid as number;
+    const result = await db.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id', [email, hashedPassword]);
+    const userId = result.rows[0].id as number;
 
     // Generate JWT
     const token = await signToken({ userId, email });
