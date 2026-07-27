@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { scrapeBankOffers } from "@/lib/scraper";
 import { parseDiscountsWithGemini } from "@/lib/gemini";
 import { getBankById } from "@/lib/banks";
+import { getDealCapData } from "@/lib/deal-cap";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -130,24 +131,15 @@ export async function POST(req: Request) {
           if (!deal || !deal.entityId) {
             toolResult = { error: `Could not find any deals for ${merchantName} with the provided card.` };
           } else {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-            const capRes = await fetch(`${baseUrl}/api/deal-cap`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                bankId, entityId: deal.entityId, merchant: merchantName, cardType, city
-              })
-            });
-
-            if (!capRes.ok) {
-              toolResult = { error: "Failed to fetch the discount cap for this restaurant." };
-            } else {
-              const capData = await capRes.json();
+            try {
+              const capData = await getDealCapData(bankId, deal.entityId, merchantName, cardType, city);
               toolResult = {
                  restaurant: merchantName,
                  maxCap: capData.maxCap || "No cap found",
                  description: capData.description || "No description available"
               };
+            } catch (capErr: any) {
+              toolResult = { error: "Failed to fetch the discount cap for this restaurant." };
             }
           }
         } catch (e: any) {
@@ -167,19 +159,8 @@ export async function POST(req: Request) {
           if (!deal || !deal.entityId) {
             toolResult = { error: `Could not find any deals for ${merchantName} with the provided card.` };
           } else {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-            const capRes = await fetch(`${baseUrl}/api/deal-cap`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                bankId, entityId: deal.entityId, merchant: merchantName, cardType, city
-              })
-            });
-
-            if (!capRes.ok) {
-              toolResult = { error: "Failed to fetch the discount cap for this restaurant." };
-            } else {
-              const capData = await capRes.json();
+            try {
+              const capData = await getDealCapData(bankId, deal.entityId, merchantName, cardType, city);
               const cap = capData.maxCap || 0;
 
               const discountStr = deal.discount || "";
@@ -202,6 +183,8 @@ export async function POST(req: Request) {
                     finalBillToPay: finalBill
                  };
               }
+            } catch (capErr: any) {
+              toolResult = { error: "Failed to fetch the discount cap for this restaurant." };
             }
           }
         } catch (e: any) {
