@@ -1,8 +1,11 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { ScrapeResult } from "@/types";
 
-const CACHE_DIR = path.join(process.cwd(), "cache");
+const CACHE_DIR = process.env.NODE_ENV === "production"
+  ? path.join(os.tmpdir(), "sasta-swipe-cache")
+  : path.join(process.cwd(), "cache");
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function ensureCacheDir() {
