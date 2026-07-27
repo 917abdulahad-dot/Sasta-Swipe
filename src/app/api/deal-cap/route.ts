@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { chromium } from "playwright";
+
 import { getBankById } from "@/lib/banks";
 
 // Must run as Node.js — Playwright cannot run in Edge runtime
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 function toCardSlug(s: string): string {
   return s
@@ -34,7 +34,18 @@ export async function POST(req: NextRequest) {
 
     const cardSlug = toCardSlug(cardType);
 
-    browser = await chromium.launch({ headless: true });
+    if (process.env.NODE_ENV === "production") {
+      const sparticuz = (await import("@sparticuz/chromium")).default;
+      const { chromium } = await import("playwright-core");
+      browser = await chromium.launch({
+        args: sparticuz.args,
+        executablePath: await sparticuz.executablePath(),
+        headless: true,
+      });
+    } else {
+      const { chromium } = await import("playwright");
+      browser = await chromium.launch({ headless: true });
+    }
 
     // ── STEP 1: Get associations list ───────────────────────────────────────
     const page1 = await browser.newPage({

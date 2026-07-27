@@ -4,18 +4,37 @@ export async function scrapeBankOffers(bankId: string, city: string, cardType: s
   const bank = getBankById(bankId);
   if (!bank) throw new Error(`Bank not found: ${bankId}`);
 
-  const { chromium } = await import("playwright");
+  let browser;
+  let context;
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  if (process.env.NODE_ENV === "production") {
+    // Vercel Serverless environment
+    const sparticuz = (await import("@sparticuz/chromium")).default;
+    const { chromium } = await import("playwright-core");
+    
+    browser = await chromium.launch({
+      args: sparticuz.args,
+      executablePath: await sparticuz.executablePath(),
+      headless: true,
+    });
+    
+    context = await browser.newContext({
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    });
+  } else {
+    // Local development
+    const { chromium } = await import("playwright");
+    
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
-  const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    viewport: { width: 1280, height: 900 },
-  });
+    context = await browser.newContext({
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1280, height: 900 },
+    });
+  }
 
   const page = await context.newPage();
 

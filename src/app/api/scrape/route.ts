@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Must run as Node.js — Playwright cannot run in Edge runtime
 export const runtime = "nodejs";
-export const maxDuration = 120; // 2 minutes for scraping + AI parsing
+export const maxDuration = 60; // 60 seconds (Vercel Free Tier max)
 import { getCachedResult, setCachedResult } from "@/lib/cache";
 import { scrapeBankOffers } from "@/lib/scraper";
 import { parseDiscountsWithGemini } from "@/lib/gemini";
