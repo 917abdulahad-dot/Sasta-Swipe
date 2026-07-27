@@ -74,19 +74,19 @@ CRITICAL RULE: When displaying a discount, NEVER say "Up to X% off" or "Upto X% 
 ## 📸 Screenshots
 
 ### 1. The Main Search & Hero
-![Hero Section](./public/screenshots/hero.png)
+![Hero Section](./public/screenshots/hero.PNG)
 
 ### 2. Live Deal Results
 ![Deals Grid](./public/screenshots/deals.png)
 
 ### 3. Dynamic Bill Calculator
-![Bill Calculator](./public/screenshots/calculator.png)
+![Bill Calculator](./public/screenshots/calculator.PNG)
 
 ### 4. AI Chat Assistant
-![AI Chat Assistant](./public/screenshots/chat-1.png)
+![AI Chat Assistant](./public/screenshots/chat-1.PNG)
 
 ### 5. User Authentication
-![Create Account](./public/screenshots/signup.png)
+![Create Account](./public/screenshots/signup.PNG)
 
 ---
 
