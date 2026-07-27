@@ -73,16 +73,20 @@ CRITICAL RULE: When displaying a discount, NEVER say "Up to X% off" or "Upto X% 
 
 ## 📸 Screenshots
 
-*(Replace these placeholder images with actual screenshots of your application)*
+### 1. The Main Search & Hero
+![Hero Section](./public/screenshots/hero.png)
 
-### 1. The Main Dashboard & Deal Feed
-![Dashboard / Deals Feed](https://placehold.co/800x450/1e1e1e/white?text=Main+Dashboard+%26+Deal+Feed)
+### 2. Live Deal Results
+![Deals Grid](./public/screenshots/deals.png)
 
-### 2. Bill Calculator in Action
-![Bill Calculator](https://placehold.co/800x450/1e1e1e/white?text=Dynamic+Bill+Calculator)
+### 3. Dynamic Bill Calculator
+![Bill Calculator](./public/screenshots/calculator.png)
 
-### 3. AI Chat Assistant
-![AI Chat Assistant](https://placehold.co/800x450/1e1e1e/white?text=AI+Chat+Assistant)
+### 4. AI Chat Assistant
+![AI Chat Assistant](./public/screenshots/chat-1.png)
+
+### 5. User Authentication
+![Create Account](./public/screenshots/signup.png)
 
 ---
 
