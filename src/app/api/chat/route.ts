@@ -21,6 +21,8 @@ If they haven't provided these, politely ask them.
 Once you have the information, call the \`getDeals\` tool.
 If they ask for specific categories (e.g., "fast food", "chinese"), you can filter the results returned by \`getDeals\` in your text response.
 
+If they ask for the maximum discount cap or limit for a specific restaurant, call the \`getDiscountCap\` tool, providing the exact restaurant name (merchant name), their bank, city, and card type.
+
 If they ask to calculate a bill for a specific restaurant, call the \`calculateDiscountedBill\` tool, providing the exact restaurant name (merchant name), their bank, city, and card type, along with the total bill amount.
 
 When responding with deals, format them beautifully in markdown (bullet points). Keep your tone enthusiastic and helpful!
@@ -55,6 +57,21 @@ const calculateDiscountedBillDeclaration = {
   }
 };
 
+const getDiscountCapDeclaration = {
+  name: "getDiscountCap",
+  description: "Finds the maximum discount cap or limit for a specific restaurant/merchant.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      bankId: { type: Type.STRING, description: "The ID of the bank" },
+      city: { type: Type.STRING, description: "The city" },
+      cardType: { type: Type.STRING, description: "The specific card type" },
+      merchantName: { type: Type.STRING, description: "The exact name of the restaurant" }
+    },
+    required: ["bankId", "city", "cardType", "merchantName"]
+  }
+};
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -71,7 +88,7 @@ export async function POST(req: Request) {
       contents: [...formattedHistory, { role: 'user', parts: [{ text: lastMessage.content }] }],
       config: {
         systemInstruction: systemPrompt,
-        tools: [{ functionDeclarations: [getDealsDeclaration, calculateDiscountedBillDeclaration] }]
+        tools: [{ functionDeclarations: [getDealsDeclaration, getDiscountCapDeclaration, calculateDiscountedBillDeclaration] }]
       }
     });
 
@@ -99,21 +116,58 @@ export async function POST(req: Request) {
         } catch (e: any) {
           toolResult = { error: e.message };
         }
-      } else if (call.name === 'calculateDiscountedBill') {
-        const { bankId, city, cardType, merchantName, billAmount } = call.args as any;
+      } else if (call.name === 'getDiscountCap') {
+        const { bankId, city, cardType, merchantName } = call.args as any;
         try {
           const bankName = getBankById(bankId)?.name || bankId;
-          const rawContent = await scrapeBankOffers(bankId, city, cardType);
+          const rawContent = await scrapeBankOffers(bankId, city, cardType, 1, merchantName);
           const deals = await parseDiscountsWithGemini(rawContent, bankName, cardType, city);
           
           const deal = deals.find((d: any) => {
              return d.merchant.toLowerCase().includes(merchantName.toLowerCase());
-          });
+          }) || deals[0];
 
-          if (!deal) {
+          if (!deal || !deal.entityId) {
             toolResult = { error: `Could not find any deals for ${merchantName} with the provided card.` };
           } else {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+            const capRes = await fetch(`${baseUrl}/api/deal-cap`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                bankId, entityId: deal.entityId, merchant: merchantName, cardType, city
+              })
+            });
+
+            if (!capRes.ok) {
+              toolResult = { error: "Failed to fetch the discount cap for this restaurant." };
+            } else {
+              const capData = await capRes.json();
+              toolResult = {
+                 restaurant: merchantName,
+                 maxCap: capData.maxCap || "No cap found",
+                 description: capData.description || "No description available"
+              };
+            }
+          }
+        } catch (e: any) {
+          toolResult = { error: e.message };
+        }
+      } else if (call.name === 'calculateDiscountedBill') {
+        const { bankId, city, cardType, merchantName, billAmount } = call.args as any;
+        try {
+          const bankName = getBankById(bankId)?.name || bankId;
+          const rawContent = await scrapeBankOffers(bankId, city, cardType, 1, merchantName);
+          const deals = await parseDiscountsWithGemini(rawContent, bankName, cardType, city);
+          
+          const deal = deals.find((d: any) => {
+             return d.merchant.toLowerCase().includes(merchantName.toLowerCase());
+          }) || deals[0];
+
+          if (!deal || !deal.entityId) {
+            toolResult = { error: `Could not find any deals for ${merchantName} with the provided card.` };
+          } else {
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
             const capRes = await fetch(`${baseUrl}/api/deal-cap`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
