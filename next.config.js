@@ -4,7 +4,11 @@ const nextConfig = {
   serverExternalPackages: ["playwright", "playwright-core", "@sparticuz/chromium"],
 
   outputFileTracingIncludes: {
-    "/**/*": ["./node_modules/playwright-core/browsers.json", "./node_modules/playwright-core/lib/**/*"],
+    "/**/*": [
+      "./node_modules/playwright-core/browsers.json", 
+      "./node_modules/playwright-core/lib/**/*",
+      "./node_modules/@sparticuz/chromium/bin/**/*"
+    ],
   },
 
   images: {
