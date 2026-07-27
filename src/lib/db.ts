@@ -1,8 +1,11 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
-// Store the database file in the project root
-const dbPath = path.join(process.cwd(), 'database.sqlite');
+// Store the database file on the persistent disk if on Render, otherwise local
+const dbPath = process.env.RENDER 
+  ? '/data/database.sqlite' 
+  : path.join(process.cwd(), 'database.sqlite');
+  
 const db = new Database(dbPath, { verbose: console.log });
 
 // Enable foreign keys

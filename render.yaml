@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: sasta-swipe
+    env: node
+    buildCommand: npm run render-build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: GEMINI_API_KEY
+        sync: false # Requires manual entry in the dashboard
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false # Requires manual entry in the dashboard
+    disk:
+      name: database
+      mountPath: /data
+      sizeGB: 1
