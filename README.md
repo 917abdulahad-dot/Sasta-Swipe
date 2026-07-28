@@ -2,10 +2,35 @@
 
 Sasta Swipe is a next-generation web application designed for the Pakistani market that aggregates credit and debit card dining discounts in real-time. 
 
-### The Problem It Solves
-Finding dining discounts across multiple Pakistani bank websites is painful. Users have to hunt through slow, static PDF catalogs, fragmented bank directories, or outdated social media posts just to figure out where they can eat for less. 
-**Sasta Swipe solves this** by acting as a centralized, real-time discount aggregator. Simply enter your bank and card type, and our engine instantly fetches, parses, and presents the latest live dining deals available to you. 
+## 🛑 The Problem
 
+Finding dining discounts across multiple Pakistani bank websites is a painful and fragmented experience. Users typically have to hunt through slow, static PDF catalogs, fragmented bank directories, or outdated social media posts just to figure out where they can eat for less. 
+
+**Who is this for?**
+- **The "Wallet Warrior":** People holding multiple credit/debit cards (HBL, Meezan, UBL, etc.) who want to maximize their savings but don't want to check 5 different banking apps before picking a restaurant.
+- **The "Smart Foodie":** Diners who want to instantly know the *exact* final bill amount (factoring in hidden max discount caps and 8% GST) without doing complex mental math at the dinner table.
+- **The "On-the-Go Planner":** People who want to quickly filter deals by city or chat with an AI assistant to find the best dining spots instantly.
+
+### 🔄 How Sasta Swipe Solves It
+
+Instead of manual hunting, Sasta Swipe acts as a centralized, real-time discount aggregator. Here is how the engine works under the hood:
+
+```mermaid
+graph TD
+    A[User opens Sasta Swipe] --> B{How do they want to search?};
+    B -->|Search by Bank| C[Select Bank, City & Card];
+    B -->|Search by Restaurant| D[Ask the AI Chatbot];
+    
+    C --> E[Lightning-Fast Native Fetch API];
+    D --> E;
+    
+    E --> F[Raw Messy JSON Data from Bank Directory];
+    F --> G[Gemini AI Parser Cleans & Standardizes Data];
+    
+    G --> H[Beautiful Deal Cards Presented to User];
+    H --> I[User Clicks Deal -> Smart Bill Calculator];
+    I --> J[Final Payable Amount Calculated <br/> including Caps & GST];
+```
 ---
 
 ## 🌐 Live Demo
