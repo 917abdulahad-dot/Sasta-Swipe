@@ -15,8 +15,8 @@ Finding dining discounts across multiple Pakistani bank websites is painful. Use
 
 ## ✨ Features
 
-- **Real-Time Deal Scraping**: Scrapes directly from bank directories (via Peekaboo and other dynamic sources) using Headless Playwright.
-- **AI-Powered Data Parsing**: Intelligently extracts merchant names, discount percentages, maximum caps, and terms from unstructured web data.
+- **Real-Time Deal Scraping**: Scrapes directly from bank directories (via Peekaboo and other dynamic sources) using lightning-fast, reverse-engineered native `fetch` API calls—eliminating the need for slow headless browsers.
+- **AI-Powered Data Parsing**: Intelligently extracts merchant names, discount percentages, maximum caps, and terms from unstructured web data (JSON API responses) using Gemini.
 - **Dynamic Cap Calculator**: Click on any deal to open the Bill Calculator. Enter your bill amount, and it automatically calculates your final payable amount factoring in the exact discount limit (max cap) and standard GST (8%).
 - **Smart Filtering & Searching**: Filter by City, Bank, and Card type. Or search for a specific restaurant to immediately see if it has an active discount on your card.
 - **AI Chatbot Assistant**: An embedded AI chatbot that lets you ask natural language questions (e.g. *"What's the discount on Kababjees for my HBL Platinum card?"*), and it will scrape, calculate, and answer you dynamically.
@@ -55,13 +55,49 @@ When responding with deals, format them beautifully in markdown (bullet points).
 CRITICAL RULE: When displaying a discount, NEVER say "Up to X% off" or "Upto X% off". Just say "X% off". Remove "Up to" completely.
 ```
 
+### The AI Deals Parser
+In addition to the chatbot, the platform uses AI to clean and parse the messy JSON data fetched from the internal bank APIs. This ensures deals are standardized and missing fields are extrapolated properly.
+
+**The System Prompt Behind It:**
+```text
+You are a data extraction assistant specializing in bank discount/offer programs in Pakistan.
+
+You have been given content from [Bank Name]'s deals platform for the city of "[City]".
+
+The content may be in one of these formats:
+1. A JSON API response with deal objects containing merchant info, discounts, categories, branches
+2. Plain page text with merchant names and discount percentages
+
+Your task:
+1. Extract ALL food and dining related offers. This includes anything related to: restaurants, cafes, dining, food, eateries, F&B, food & beverage. Use your best judgment.
+2. The content provided is ALREADY confirmed to be available in "[City]". Include all relevant deals even if the city name is not explicitly written in the JSON.
+3. Prefer offers for "[Card Type]" cards, but also include "All Cards" offers.
+4. **CRITICAL**: If the JSON has a "maxDiscount" field but an empty or missing "discounts" array, interpret the discount as "Up to {maxDiscount}% off".
+5. Return ONLY a valid JSON array. No markdown, no explanation.
+
+Each object must have this exact shape:
+{
+  "entityId": 13, // The EXACT entityId number from the JSON (e.g. 13)
+  "merchant": "Restaurant or Brand Name",
+  "discount": "e.g. Up to 40% off",
+  "location": "[City] or Nationwide",
+  "cardType": "Must be '[Card Type]' since these are filtered results for that card",
+  "validity": "Validity date if mentioned, or null",
+  "terms": "Short T&C snippet if mentioned, or null",
+  "category": "dining"
+}
+
+If no food/dining offers found, return: []
+```
+
+
 ---
 
 ## 🛠️ Tools, Services, & AI Models Used
 
 - **Framework**: Next.js 14 (App Router)
 - **Frontend/Styling**: React 19, Vanilla CSS (CSS Modules & Globals)
-- **Web Scraping / Browser Automation**: Playwright (`playwright-core`) & `@sparticuz/chromium` (for Serverless support)
+- **Web Scraping**: Direct internal API integration using native Node.js `fetch` (Playwright and Chromium dependencies were removed for a 10x speed boost on Edge/Serverless environments).
 - **Database**: SQLite (via `sqlite3` for local user/preference storage)
 - **AI Models & SDKs**: 
   - Google Gemini 3.1 Flash-Lite via the `@google/genai` SDK
@@ -110,13 +146,7 @@ CRITICAL RULE: When displaying a discount, NEVER say "Up to X% off" or "Upto X% 
    NEXT_PUBLIC_APP_URL=http://localhost:3000
    ```
 
-4. **Install Playwright Browsers**
-   This is required for the local scraper to function:
-   ```bash
-   npx playwright install chromium
-   ```
-
-5. **Run the Development Server**
+4. **Run the Development Server**
    ```bash
    npm run dev
    ```
