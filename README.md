@@ -34,7 +34,7 @@ graph TD
 ---
 
 ## 🌐 Live Demo
-**https://sasta-swipe-vbiz.vercel.app/**
+**https://sasta-swipe.vercel.app/**
 
 ---
 

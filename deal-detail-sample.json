@@ -1,0 +1,54 @@
+{
+  "dealId": 10751299,
+  "keywords": [
+    ""
+  ],
+  "title": "50% off on Every Monday to Thursday",
+  "startDate": "2024-12-30T00:00:00",
+  "endDate": "2026-12-31T23:59:00",
+  "poweredBy": "NONE",
+  "percentageValue": 50,
+  "targetEntityId": 599,
+  "sourceEntityId": 44,
+  "redeemableCount": 0,
+  "orderType": "OUTLET",
+  "expiresIn": 13575186,
+  "description": "* Discount Cap PKR 3,000/-\n* Discount is applicable on Pizzas on regular menu only.\n* This offer is not valid in conjunction with any other promotion / deal.\n* A maximum of five (5) discounted transactions per month are permissible per cardholder.\n* MCB Bank reserves the right to terminate, withdraw and change the criteria/conditions for any discount offering at any time.\n* MCB Bank will not be responsible for any complaint or liability arising from services or items ordered.\n* Terms & Conditions apply",
+  "likeCount": 2,
+  "dislikeCount": 2,
+  "targetBranches": {
+    "22558": "MM Alam Rd Lahore Branch",
+    "22559": "Johar Town Lahore Branch",
+    "1186716": "Allama Iqbal Town Lahore Branch",
+    "1198656": "Fortress Square Mall Lahore Branch",
+    "1348462": "DHA Phase 6 Lahore Branch"
+  },
+  "likedByMe": "false",
+  "dislikedByMe": "false",
+  "targetEntityName": "California Pizza",
+  "targetEntityLogo": "https://d2liqplnt17rh6.cloudfront.net/logoImages/californiapizzajlogo_2edf97c6-747c-4a13-b3af-510d56a668f3-110.jpeg",
+  "sourceOriginalId": 777,
+  "sourceEntityName": "MCB Bank Limited",
+  "sourceEntityDescription": "Bank For Life! MCB provides amazing banking solutions along with easy car loan to its customers. Here you can find all the deals and discounts on all MCB Debit and Credit Cards including MCB Lite Card, Visa Gold Debit Card, Visa Platinum Debit Card, Visa Platinum Credit Card, Visa Gold Credit Card etc..",
+  "sourceEntityContactNumber": "111 000 622",
+  "buy": false,
+  "apply": false,
+  "sourceEntityLogo": "https://d2liqplnt17rh6.cloudfront.net/logoImages/logocopy5_cfa06e88-7b48-4242-9191-7538e1b90b0d-764.jpeg",
+  "associations": [
+    {
+      "typeId": 862,
+      "name": "Visa Platinum Debit Card",
+      "image": "https://d2liqplnt17rh6.cloudfront.net/cardImages/mcbvisaplatinumdebitcard_fca7ed57-ef88-4260-8f36-00740120734a-636.jpeg",
+      "order": 10,
+      "sourceEntityAssociationId": 485
+    }
+  ],
+  "isRedeemable": false,
+  "redeemedCount": 0,
+  "redemptionDetails": {
+    "isRedeemable": false,
+    "redeemableCount": 0,
+    "redeemedCount": 0
+  },
+  "originalDealId": 119171
+}
